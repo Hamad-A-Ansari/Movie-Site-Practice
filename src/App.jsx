@@ -5,6 +5,7 @@ import './App.css'
 import Search from './components/Search.jsx'
 import MovieCard from './components/MovieCard.jsx'
 import { useDebounce } from 'react-use'
+import { getTrendingMovies, updateSearchCount } from './appwrite.js'
 
 const API_BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -24,6 +25,7 @@ function App() {
   const [movieList, setMovieList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [trendingMovies, setTrendingMovies] = useState([]);
 
   useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm])
 
@@ -47,19 +49,39 @@ function App() {
       }
       setMovieList(data.results || []);
 
-
+      if(query && data.results.length > 0){
+        await updateSearchCount(query, data.results[0]);
+      }
+      
     } catch (error) {
       console.error('Error fetching movies:', error);
-      setErrorMessage('Failed to fetch movies. Please try again later.');
     } finally {
       setIsLoading(false);
     }
 
   }
 
+  const loadTrendingMovies = async () => {
+    try {
+      const movies = await getTrendingMovies();
+
+      setTrendingMovies(movies);
+    } catch (error) {
+      console.error("Error Fetching Trnding Movies", error);
+      setErrorMessage('Error fetching trending movies.');
+    }
+  }
+
   useEffect(() => {
     fetchMovies(debouncedSearchTerm);
   }, [debouncedSearchTerm]);
+  
+  useEffect(() => {
+    loadTrendingMovies();
+  }, []);
+  
+  
+  
   return (
     <main>
       <div className='pattern'/>
@@ -70,6 +92,28 @@ function App() {
           <h1>Find <span className='text-gradient' >Movies</span> you'll enjoy without the hastle</h1>
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm}  /> 
         </header>
+        
+        {
+          trendingMovies.length > 0 && (
+            <section className='trending'>
+              <h2>Trending Movies</h2>
+
+              <ul>
+                {
+                  trendingMovies.map((movie, index) => (
+                    <li key={movie.$id}>
+                      <p>{index + 1}</p>
+                      <img src={movie.poster_url} alt={movie.title} />
+                    </li>
+                  ))
+                }
+              </ul>
+            </section>
+          )
+
+        }
+        
+        
         <section className='all-movies'>
           <h2>Popular Movies</h2>
           
