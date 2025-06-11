@@ -4,6 +4,7 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import Search from './components/Search.jsx'
 import MovieCard from './components/MovieCard.jsx'
+import { useDebounce } from 'react-use'
 
 const API_BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -22,12 +23,15 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('');
   const [movieList, setMovieList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
-  const fetchMovies = async () => {
+  useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm])
+
+  const fetchMovies = async (query = '') => {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const endpoint = `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+      const endpoint = query ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}` : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
   
       const response = await fetch(endpoint, API_OPTIONS);
       if (!response.ok) {
@@ -54,8 +58,8 @@ function App() {
   }
 
   useEffect(() => {
-    fetchMovies();
-  }, []);
+    fetchMovies(debouncedSearchTerm);
+  }, [debouncedSearchTerm]);
   return (
     <main>
       <div className='pattern'/>
